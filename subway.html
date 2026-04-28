@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Subway Runner Style Game</title>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    color: white;
+    text-align: center;
+    font-family: Arial;
+  }
+  canvas {
+    display: block;
+    margin: auto;
+    background: #222;
+  }
+</style>
+</head>
+<body>
+
+<h2>Runner Game 🏃‍♂️</h2>
+<p>← → Move | ↑ Jump | ↓ Slide</p>
+
+<canvas id="gameCanvas" width="400" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Lanes
+const lanes = [80, 180, 280];
+
+let player = {
+  lane: 1,
+  y: 400,
+  width: 30,
+  height: 50,
+  jumping: false,
+  sliding: false,
+  velocityY: 0
+};
+
+let obstacles = [];
+let score = 0;
+let speed = 4;
+
+// Controls
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft" && player.lane > 0) player.lane--;
+  if (e.key === "ArrowRight" && player.lane < 2) player.lane++;
+
+  if (e.key === "ArrowUp" && !player.jumping) {
+    player.jumping = true;
+    player.velocityY = -10;
+  }
+
+  if (e.key === "ArrowDown" && !player.sliding) {
+    player.sliding = true;
+    setTimeout(() => player.sliding = false, 500);
+  }
+});
+
+// Spawn obstacles
+function spawnObstacle() {
+  let type = Math.random() > 0.5 ? "jump" : "slide";
+  obstacles.push({
+    lane: Math.floor(Math.random() * 3),
+    y: -50,
+    width: 30,
+    height: type === "jump" ? 50 : 25,
+    type: type
+  });
+}
+
+// Update
+function update() {
+  score++;
+
+  // Jump physics
+  if (player.jumping) {
+    player.y += player.velocityY;
+    player.velocityY += 0.5;
+
+    if (player.y >= 400) {
+      player.y = 400;
+      player.jumping = false;
+    }
+  }
+
+  // Move obstacles
+  obstacles.forEach((obs, index) => {
+    obs.y += speed;
+
+    let px = lanes[player.lane];
+
+    // Collision
+    if (
+      px < lanes[obs.lane] + obs.width &&
+      px + player.width > lanes[obs.lane] &&
+      player.y < obs.y + obs.height &&
+      player.y + player.height > obs.y
+    ) {
+      // Check correct action
+      if (
+        (obs.type === "jump" && !player.jumping) ||
+        (obs.type === "slide" && !player.sliding)
+      ) {
+        alert("Game Over! Score: " + score);
+        document.location.reload();
+      }
+    }
+
+    // Remove passed obstacles
+    if (obs.y > 500) obstacles.splice(index, 1);
+  });
+}
+
+// Draw
+function draw() {
+  ctx.clearRect(0, 0, 400, 500);
+
+  // Player
+  ctx.fillStyle = "cyan";
+  let px = lanes[player.lane];
+  let ph = player.sliding ? 25 : 50;
+  ctx.fillRect(px, player.y + (player.sliding ? 25 : 0), player.width, ph);
+
+  // Obstacles
+  ctx.fillStyle = "red";
+  obstacles.forEach(obs => {
+    ctx.fillRect(lanes[obs.lane], obs.y, obs.width, obs.height);
+  });
+
+  // Score
+  ctx.fillStyle = "white";
+  ctx.fillText("Score: " + score, 10, 20);
+}
+
+// Loop
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+setInterval(spawnObstacle, 1200);
+loop();
+</script>
+
+</body>
+</html>
